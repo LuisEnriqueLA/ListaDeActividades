@@ -1,5 +1,7 @@
 const boton = document.getElementById("guardar"); 
 boton.addEventListener("click", crear);
+const numeroDeTareas = document.getElementById("numero"); 
+var contador = 0;
 
 const lista = document.getElementById("lista");
 
@@ -8,83 +10,93 @@ document.getElementById("make").addEventListener("keypress", function(e) {
 });
 
 function crear() {
-   const actividad = document.getElementById("make").value;
+   const actividad = document.getElementById("make").value.trim();
 
-   if (actividad.trim() === ""){
-         alert("No has escrito nada");
-         return;
+   if (actividad === "") {
+      alert("No has escrito nada");
+      return;
    }
 
-   const nuevo = document.createElement("li");
-   const borrar = document.createElement("button");
+   const tarea = crearElementoTarea(actividad);
+   lista.appendChild(tarea);
 
-   borrar.innerText = "❌";
-   borrar.className = "borrar";
+   contador++;
+   numeroDeTareas.innerText = contador;
 
-   nuevo.textContent = actividad;
-   nuevo.appendChild(borrar);
-
-   nuevo.addEventListener("click", function() {
-       nuevo.classList.toggle("tachado");
-       guardar();
-   });
-
-   nuevo.addEventListener("dblclick", function editarTarea() {
-      const li = this;
-      const textoActual = li.firstChild.textContent.trim();
-      const botonBorrar = li.querySelector("button");
-
-      const editar = document.createElement("input");
-      editar.type = "text";
-      editar.value = textoActual;
-
-      li.innerHTML = "";
-      li.appendChild(editar);
-      li.appendChild(botonBorrar);
-
-      editar.focus();
-      editar.select();
-
-      editar.addEventListener("keypress", function(e) {
-         if (e.key === "Enter") {
-            guardarCambios();
-         }
-      });
-
-      editar.addEventListener("blur", guardarCambios);
-
-      function guardarCambios() {
-         const nuevoTexto = editar.value.trim();
-         if (nuevoTexto === "") {
-            alert("El texto no puede estar vacío.");
-            editar.focus();
-            return;
-         }
-
-         li.innerHTML = nuevoTexto;
-         li.appendChild(botonBorrar);
-
-         li.addEventListener("click", function() {
-            li.classList.toggle("tachado");
-            guardar();
-         });
-
-         li.addEventListener("dblclick", editarTarea);
-
-         guardar();
-      }
-   });
-
-   borrar.addEventListener("click", function(e) {
-      e.stopPropagation();
-      nuevo.remove();
-      guardar();
-   });
-
-   lista.appendChild(nuevo);
    document.getElementById("make").value = "";
    guardar();
 }
+
+
+function crearElementoTarea(texto, tachado= false) {
+   const li = document.createElement("li");
+   const boton = document.createElement("button");
+
+   li.textContent = texto;
+   if(tachado) li.classList.add("tachado");
+
+   boton.innerText = "❌";
+   boton.className = "borrar";
+
+   li.appendChild(boton);
+   agregarEventosTarea(li, boton);
+
+   return li;
+}
+
+function editarTarea(li){
+   const textoActual = li.firstChild.textContent.trim();
+   const botonBorrar = li.querySelector("button");
+
+   const input = document.createElement("input");
+   input.type = "text";
+   input.value = textoActual;
+
+   li.innerHTML = "";
+   li.appendChild (input);
+   li.appendChild(botonBorrar);
+
+   input.focus();
+   input.select();
+
+   input.addEventListener("keypress", function(e) {
+      if (e.key === "Enter") guardarCambios();
+   });
+
+   input.addEventListener("blur", guardarCambios);
+
+   function guardarCambios() {
+      const nuevoTexto = input.value.trim();
+      if (nuevoTexto === "") {
+         alert("El texto no puede estar vacío.");
+         input.focus();
+         return;
+      }
+
+      li.innerHTML = nuevoTexto;
+      li.appendChild(botonBorrar);
+      agregarEventosTarea(li, botonBorrar);
+      guardar();
+   }
+}
+
+ function agregarEventosTarea(li, boton){
+   li.addEventListener("click", () => {
+      li.classList.toggle("tachado");
+      guardar();
+   });
+
+   li.addEventListener("dblclick", () => editarTarea(li));
+
+   boton.addEventListener("click", function (e) {
+      e.stopPropagation();
+      li.remove();
+      contador--;
+      numeroDeTareas.innerText = contador;
+      guardar();
+   });
+}
+
 
 function guardar(){
    const tareas = [];
@@ -102,71 +114,12 @@ function guardar(){
 function cargar() {
    const tareasGuardadas = JSON.parse(localStorage.getItem("tareas")) || [];
 
-   tareasGuardadas.forEach(tarea => {
-      const nuevo = document.createElement("li");
-      const borrar = document.createElement("button");
-
-      borrar.innerText = "❌";
-      borrar.className = "borrar";
-
-      nuevo.textContent = tarea.texto;
-
-      if (tarea.tachado) {
-         nuevo.classList.add("tachado");
-      }
-
-      nuevo.addEventListener("click", function() {
-         nuevo.classList.toggle("tachado");
-         guardar();
-      });
-
-      nuevo.addEventListener("dblclick", function editarTarea() {
-         const li = this;
-         const textoActual = li.firstChild.textContent.trim();
-         const botonBorrar = li.querySelector("button");
-
-         const editar = document.createElement("input");
-         editar.type = "text";
-         editar.value = textoActual;
-
-         li.innerHTML = "";
-         li.appendChild(editar);
-         li.appendChild(botonBorrar);
-
-         editar.focus();
-         editar.select();
-
-         editar.addEventListener("keypress", function(e) {
-               guardarCambios();
-         });
-
-         editar.addEventListener("blur", guardarCambios);
-
-         function guardarCambios() {
-         const nuevoTexto = editar.value.trim();
-         li.innerHTML = nuevoTexto;
-         li.appendChild(botonBorrar);
-
-         li.addEventListener("click", function() {
-            li.classList.toggle("tachado");
-            guardar();
-         });
-
-         li.addEventListener("dblclick", editarTarea);
-
-         guardar();
-      }
+   tareasGuardadas.forEach(t => {
+         const tarea = crearElementoTarea(t.texto, t.tachado);
+         lista.appendChild(tarea);
+         contador++;
    });
 
-   borrar.addEventListener("click", function(e) {
-         e.stopPropagation();
-         nuevo.remove();
-         guardar();
-      });
-
-      nuevo.appendChild(borrar);
-      lista.appendChild(nuevo);
-   });
+   numeroDeTareas.innerText = contador;
 }
-
 cargar();
